@@ -1,0 +1,317 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="generator" content="pandoc" />
+  <title>Collaborative Development Using Subversion: A Quick Tour</title>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Collaborative Development Using Subversion: A Quick Tour</h1>
+</div>
+<p>Creating and maintaining a good repository structure and software development workflow is always a great challenge, but if it is designed well it can improve the productivity by at least one order of magnitude. In this document, we are summarizing our experience on the topic by discussing repository structures and workflows suitable for cooperative development and eventually for delivering software releases.</p>
+<p>Here we describe a basic structure for a Subversione repository, and add some rules or rule-of-thumbs for using each part of it. For easier understanding, we provide some example use cases and scenarios to this system that hopefully helps to put users on the right track. Of course, as always, comments, remarks, and questions are welcome. It also recommended to read the <a href="http://svnbook.red-bean.com/">Subversion book</a> for the details.</p>
+<h1 id="repository-structure">Repository Structure</h1>
+<p>A key to understand how to work with Subversion is to make ourselves comfortable with the layout of the actual repository. Note that it is not required to use all the directories in the repository, everybody is free to do so-called &quot;sparse checkouts&quot; and work with only the parts that is needed. A sparse checkout means that we do not checkout the top-level directory but one or more of its sub-directories.</p>
+<p>A sample structure of a repository from the top is as follows.</p>
+<div class="figure">
+<img src="repository.png" alt="A sample repository." /><p class="caption">A sample repository.</p>
+</div>
+<p>Let us take a look at each of these directories (in the order they are used):</p>
+<ul>
+<li><p><code>branches</code>: A common directory containing all the on-going sub-projects within the project itself. They can be called &quot;work-in-progress&quot; or &quot;experimental&quot; projects, where the contents is not ready for being published yet. If something is not finished but already shared between people in the project, it should be stored here. One might think of it as an incubator for potential future features.</p>
+<p>Copies (branches) of <code>trunk</code> (see below) are stored here, each of them is to host a development of a given future feature. All of the branches maintain a strong relation with the <code>trunk</code> branch, i.e. changes are migrated between them continuously in both directions. When a development branch is completed, it is strongly recommended to be closed (deleted). Before closing, contents of the branch should be (totally or partially) merged back to <code>trunk</code> depending on the success of the development.</p></li>
+<li><p><code>trunk</code>: It is the branch where all features from the <code>branches</code> directory meet after they have been successfully completed. As a rule of thumb, this directory should always contain a version of the current development which might be used by fellow developers, therefore it is strongly advised to be kept in a consistent, usable shape. After each experimental feature is finished, they should be integrated here, queued up for the next release. The stability of the branch can be automatically monitored by employing a continuous integration server solution.</p></li>
+<li><p><code>release</code>: The purpose of this directory is to store every published release and lines of release, so problem reports or patches connected to them can be processed easily. For each major release, an invidiual branch is created to contain a &quot;stable&quot; version of the software being developed. This branch may be then used for publication of the actual releases. It only requires of creation of a tag that is never modified after. That is the <code>X.Y</code> releases are branches of <code>trunk</code>, and <code>X.Y.Z...</code> (&quot;patch level&quot;) releases are tags of an existing <code>X.Y</code> release line. This will be described in details below.</p></li>
+<li><p><code>users</code>: User directories with the names (Subversion identifiers preferred) for developers. Here one can store really experimental work and sources which are not related strictly to any part of the development yet.</p></li>
+<li><p><code>www</code>: Project home pages, a published interface to the outside world. If something is committed here, it will appear on the project's web site. The intention behind the recommendation of this directory is to store every published information in a version-controlled format, therefore it can be easily overseen what has been published when by who.</p></li>
+</ul>
+<h1 id="using-the-repository">Using the Repository</h1>
+<p>The main concepts in controlling versions with Subversion are introduced in this section. Getting familiar with them is important for the efficient usage of the repository. For the rest of the document, we will refer project repository URL as <code>$SVNBASE</code>, and the local working copy base as <code>$BASE</code>. Every time it is used the reader should use the URL of the Subversion repository and the client-side directory he uses for local copies (e.g. <code>/home/bozo/wundertool</code>) respectively.</p>
+<h2 id="checking-out">Checking Out</h2>
+<p>In terms of Subversion, &quot;to check out&quot; means &quot;to get a local copy of the central repository&quot;. It can be done by the <code>svn checkout</code> command (or <code>svn co</code> for short) by providing a path of the central repository (in our case, this is <code>$SVNBASE</code>) together with a sub-path of a given part of the repository (in our case, this might be <code>users/bozo</code>) optionally. If there is no sub-path specified, the Subversion client will check out the entire repository which can be huge since the latest revision of <em>everything</em> is downloaded from the central server.</p>
+<p>This is where the concept &quot;sparse checkout&quot; comes into play. When doing a sparse checkout, only the necessary parts are checked out, nothing more. This way we can reduce the complexity of the original structure as we have custom views of it that helps to focus on the relevant pieces only. Note that Subversion does not support checking out single files but directories. That means if one would like to check out a single one must check out its parent directory. However, to avoid checking out anything else than files in the same directory, one may use the <code>-N</code> (<code>--non-recursive</code>) flag when invoking <code>svn checkout</code>.</p>
+<h3 id="example">Example</h3>
+<p>User <code>bozo</code> would like to access the experimental project called <code>skeleton</code> under the name <code>skeleton</code> on his client. To get it, he needs to issue the following command:</p>
+<pre><code>$ svn checkout $SVNBASE/branches/skeleton $BASE/skeleton
+...
+</code></pre>
+<h2 id="copying-branching-tagging">Copying / Branching / Tagging</h2>
+<p>To understand where the <code>skeleton</code> directory comes from, we need to become familiar with the concept of copying in Subversion. Copies in Subversion are &quot;cheap&quot;, i.e. they are not like traditional copies since it is a version control system, a persistent database. Because Subversion records all previous revisions of all files, and therefore there are no destructive updates in that sense, copying files is just having a specific revision under a different name (or sub-path). In Subversion, these names are called &quot;tags&quot;. Tags might be modified, i.e. we might want to update them, then Subversion starts to store the differences compared to the base point (the revision we tagged). If we update tags then we get branches. According to this, copies, tags and branches are handled in the same way, Subversion does not make difference between them.</p>
+<p>From the user's point of view, copying branches is favorable when he wants to work on a given branch without disturbance. It is like taking the current state of development home, and playing with it in a comfortable environment -- &quot;If something has worked in my copy before it should still work today&quot;. In a private branch, we are free to do anything with the contents to our liking, nobody else will blame us :-) Thus it is also considered a good practice for managing different features developed in parallel.</p>
+<h3 id="example-1">Example</h3>
+<p>User <code>bozo</code> has had to have a project somewhere in the <code>branches</code> directory to be able to check it out. Let us assume there is a project called <code>skeleton</code>, branched right from the <code>trunk</code> branch. As we have mentioned earlier, <code>trunk</code> contains the latest development version of the software. Everyone who wants to do some experimental work needs to branch from here and his branch will need to be updated against <code>trunk</code> later on.</p>
+<p>User <code>bozo</code> and <code>biafra</code> decided to work on some extension to the software, so they branched the main line of development.</p>
+<pre><code>$ svn copy --message &quot;Branch trunk for the skeleton project&quot; $SVNBASE/trunk $SVNBASE/branches/skeleton
+</code></pre>
+<p>Note that nothing will be created on the client side here, since we are performing a server-side copy. It is because both source and target of the copy operation are remote URLs, not direct references to the working copy.</p>
+<p>Contents of <code>$SVNBASE/branches/skeleton</code> can be accessed locally if the users checks it out.</p>
+<pre><code>$ svn checkout $SVNBASE/branches/skeleton $BASE/skeleton
+...
+</code></pre>
+<h2 id="integrating-merging">Integrating / Merging</h2>
+<p>However, it is worth to keep our work synchronized with the parent branch since that way we can reduce the efforts needed when we want to put it back, and of course, we should be able put it back to the main line somehow. This is called &quot;integration&quot; or &quot;merging&quot;, depending on its direction. Starting from 1.5, Subversion includes a so-called <code>mergeinfo</code> for keeping track of relationships between files that is supposed to make merges easier. Merge information is stored as property of the given branch (directory) and it contains the revisions (and branches) merged to there.</p>
+<p>When we are merging from the parent to our branch, we are doing an integration. The purpose of integrations is to keep our own line of development synchronized with the main line, therefore it will be easier to merge our branch back. Integrations also help us to discover and handle problems early by doing continuous merges. Integrations should be done on a regular basis (e.g. once in a week). They are like updates to our branch since branches will be not updated automatically (for a reason).</p>
+<p>When we are merging from our branch to parent, we are doing a real merge. This is when we are making all of our work in our branch available for the other members so they can work with them. It is usually done when we are ready, i.e. finished and tested the implementation of a given feature and it is ready for the release. After we have successfully merged our changes back, it is recommended to delete the branch, since using the same branch for more features easily messes up the development. It is possible to move only a small subset of changes back to the parent, e.g. implementing architectural changes that might affect work of others.</p>
+<p>Note that merges have to be committed separately.</p>
+<h3 id="example-2">Example</h3>
+<p>User <code>bozo</code> updates the <code>skeleton</code> project branch by merging.</p>
+<pre><code>$ cd $BASE/skeleton
+$ svn merge $SVNBASE/trunk
+...
+$ svn commit --message &quot;Integrate from trunk&quot;
+...
+</code></pre>
+<p>When the branch is finished, he wants to merge it back (&quot;reintegrate&quot;) to its parent.</p>
+<pre><code>$ svn checkout $SVNBASE/trunk $BASE/trunk
+$ cd $BASE
+$ svn merge trunk@HEAD skeleton@HEAD trunk
+...
+$ svn commit --message &quot;Merge the skeleton branch&quot;
+...
+</code></pre>
+<p>However, one must be careful with reintegration because Subversion has problems with branches that are still used after they have been already merged back to their parents. Reintegration is called a &quot;reflective&quot; or &quot;cyclic&quot; merge, when the branch appears in the <code>mergeinfo</code> of the parent. That is, when we are trying to use the branch and continue to merge from the parent, the branch will conflict with itself, making the merge a nightmare.</p>
+<p>There are usually 3 solutions are possible to defeat this:</p>
+<ul>
+<li><p>Delete the reintegrated branch immediately. If one wants to continue working with the branch, re-branch it from the parent under a different name.</p></li>
+<li><p>Skip the revision of the reintegration before the first merge after the reintegration. This can be implemented by using the <code>--record-only</code> flag for <code>merge</code>. This causes to record the merge only in the <code>mergeinfo</code> without actually modifying the sources. It requires the revision to be &quot;recorded only&quot; -- which is the revision of the reintegration.</p>
+<pre><code>$ svn merge --record-only -c $REVISION $PARENT
+</code></pre>
+<p>Note that this can be only done when the revision to be skipped only contained the changes required for reintegration. Otherwise other changes may be skipped too.</p></li>
+<li><p>&quot;Rebase&quot; the branch to the first revision after the reintegration in the parent. This can be done by a &quot;reversed reintegration&quot;, i.e. when the first merge to the branch after the reintegration is done by reintegration (instead of a regular merge).</p>
+<pre><code>$ svn checkout $SVNBASE/trunk $BASE/trunk
+$ svn checkout $SVNBASE/branches/skeleton $BASE/sparrow
+$ cd $BASE
+$ svn merge skeleton@HEAD trunk@HEAD sparrow
+...
+$ svn commit --message &quot;Reintegrate from trunk&quot;
+...
+</code></pre></li>
+</ul>
+<h2 id="resolving-conflicts">Resolving Conflicts</h2>
+<p>Occasionally it happens that some of the files are in a &quot;conflicted&quot; state after an update or merge. Conflicts are introduced by simultaneous changes of the same file from two sides, as Subversion calls them: &quot;mine&quot; and &quot;theirs&quot;. When the Subversion client reports a conflict it creates four versions of the affected file and leaves the resolution to the user. All these four versions are derived from the original file as follows:</p>
+<ul>
+<li><p>The conflicted file (e.g. <code>foo</code>) decorated with markers. Markers show the positions in the file where the same regions were modified in different ways. Syntax of such conflicted regions is the following (where <code>N</code> refers to the latest revision):</p>
+<pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; .mine
+local changes (&quot;mine&quot;)
+=======
+remote changes (&quot;theirs&quot;)
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; .rN
+</code></pre></li>
+<li><p>A version with extension <code>.mine</code> (e.g. <code>foo.mine</code>). It is the locally modified but uncommitted version of the file that the user had before he started the update or merge. This is called &quot;mine&quot;.</p></li>
+<li><p>A version with extension of the original (unmodified) revision the user had (e.g. <code>foo.r99</code>). This represents the base revision in the user's working copy, i.e. the latest locally updated or committed version of the file. Thus it refers to revision N, which is less than HEAD.</p></li>
+<li><p>A version with extension of the latest (stored) revision (e.g. <code>foo.r133</code>). This revision is the true latest version stored on the server. This is called &quot;theirs&quot;. Essentially, this means that revision of the file changed from N to M (= HEAD) while the user was working with the working copy.</p></li>
+</ul>
+<p>To resolve, conflicted files have to be modified by removing the markers and determining the final (merged) value of the overlapping regions. It can be achieved by simply accepting one of the versions (while discarding the other), or by merging the versions into one. Note that markers are automatically handled by the various graphical merge tools (e.g. <a href="http://tortoisesvn.tigris.org/TortoiseMerge.html">TortoiseMerge</a>, <a href="http://winmerge.org/">WinMerge</a>, <a href="http://www.freebsd.org/cgi/man.cgi?query=sdiff&amp;apropos=0&amp;sektion=0&amp;manpath=FreeBSD+9.0-RELEASE&amp;arch=default&amp;format=html">sdiff(1)</a> etc.), however the essence of the resolution remains the same.</p>
+<p>When all of the markers have been removed from the file, Subversion has to be notified by using the <code>resolved</code> command. It removes the copies mentioned above and marks the given file(s) resolved, ready to be committed.</p>
+<p>When finished up with resolving the conflicts, do not forget to commit the results. When only conflicts are resolved, write something like &quot;Resolve conflicts&quot; in the commit message, but when they were part of implementing a merge it is better not to mention them at all.</p>
+<h3 id="example-3">Example</h3>
+<p>User <code>bozo</code> wanted to update his working copy of the <code>skeleton</code> project, but one of the files became conflicted.</p>
+<pre><code>$ svn update
+C   README
+Updated to revision 1236.
+</code></pre>
+<p>It must be because he added some text to the <code>README</code> but he has not committed it yet. He opens the <code>README</code> file and tries to resolve the conflict by finding and fixing the marked regions.</p>
+<pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; .mine
+Note: Skeletons are good!
+=======
+Note: Skeletons are bad.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; .r1236
+</code></pre>
+<p>By investigating the conflicting versions in question, he decided to remove both of them, since it would be too premature to add an opinion on using skeletons. When he finished editing <code>README</code>, closes it and resolves it.</p>
+<pre><code>$ svn resolved README
+Resolved conflicted state of 'README'
+</code></pre>
+<p>After every conflict has been resolved, he commits the results.</p>
+<pre><code>$ svn commit --message &quot;Resolve conflicts.&quot;
+</code></pre>
+<h2 id="committing">Committing</h2>
+<p>Committing is easy :-) Just take a quick review on your local changes then commit them if everything is fine. Local changes can be inspected by the <code>diff</code> (&quot;Check for modifications&quot; in <a href="http://tortoisesvn.net/">TortoiseSVN</a>) command. The result is usually shown in unified diff format as a list of changes in each file. In this format, lines prefixed with <code>+</code> mean addition, lines prefix with <code>-</code> mean removal, and pairs of them mean modification. These changes are grouped into &quot;hunks&quot;, prefixed by their positions in the original file (e.g. <code>@@ -1,4 +1,4 @@</code>). With graphical comparison tools (like <a href="http://tortoisesvn.tigris.org/TortoiseMerge.html">TortoiseMerge</a> or <a href="http://winmerge.org/">WinMerge</a>, <a href="http://kdiff3.sourceforge.net/">Kdiff3</a>, etc.) it is even more visible.</p>
+<pre><code>$ svn diff
+...
+$ svn commit --message &quot;A fancy commit message&quot;
+...
+</code></pre>
+<p>Sometimes it is good to check what files have been touched in our local copy. This is can be verified by the <code>status</code> command. It is useful to see whether we added all the new files, what things we have been removed, and what sources are changed. The <code>status</code> command shows the modified files with different prefixes: <code>M</code> means modified in the local copy, <code>A</code> means added in the local copy (and scheduled for addition on the next commit), <code>D</code> means removed in the local copy (and scheduled for removal on the next commit), <code>?</code> means the given files is not under version control (hence Subversion does not know anything about them), <code>!</code> means missing files in the local copy, <code>R</code> means replaced files (deleted then re-added without commit), <code>I</code> means ignored files (by adding of the <code>svn:ignore</code> property), finally <code>C</code> refers to a conflicted state.</p>
+<p>Note that commits are remembered forever, and with wrong commits it is easy to put the development into an inconsistent state. To avoid mistakes, here are some guidelines on what to do before committing (a short checklist) and how to write reasonable commit messages. This latter is important, since commit messages are a form of documentation and communication:</p>
+<ul>
+<li><p>Makes things easier to be figured out later on, especially when hunting for bugs.</p></li>
+<li><p>Others might see our commits and they might be curious about what we are doing.</p></li>
+</ul>
+<h3 id="mind-the-following-before-committing">Mind the Following Before Committing</h3>
+<ul>
+<li><p>Subversion works with changesets. As its name says, a changeset refers to a set of changes, i.e. changes in the directory structure (adding or removing files), in the files (adding, modifying or removing lines), and in Subversion properties (e.g. whether a file is a binary one, how to handle line endings, etc.). These changes should show up right before the commit in some form (usually as a list).</p></li>
+<li><p>Check the list of the changed files, check the differences in each file. Are there any unwanted changes?</p></li>
+<li><p>Changesets should include related changes only, and the commit message should refer to them. If something is not relevant to the current changeset, revert it (or remove from the list), and commit it separately.</p></li>
+<li><p>Merges should be committed without any further changes. Always resolve conflicts.</p></li>
+<li><p>Do not forget to update your local copy. Do merges if needed.</p></li>
+<li><p>Test your changes, do not commit code that will not work.</p></li>
+<li><p>Avoid committing binary files or files that can be generated. Version control systems are primarily designed for working with text and differences of text files.</p></li>
+</ul>
+<h3 id="mind-the-following-when-writing-a-commit-message">Mind the Following When Writing a Commit Message</h3>
+<ul>
+<li><p>Do not leave it empty. Every commit contains something.</p></li>
+<li><p>Try to describe all the changes you have in the commit. This can be done by looking through the differences covered by the commit and making a list of them.</p></li>
+<li><p>If your changes are induced by a ticket, add the number of the ticket (e.g. <code>#1738</code> for <a href="http://trac.edgewall.org/">Trac</a>).</p></li>
+<li><p>When integrating from somewhere, write something like that: &quot;Integrate from <em>source</em>&quot;.</p></li>
+<li><p>When merging from somewhere, write something like that: &quot;Merge from <em>source</em>&quot;.</p></li>
+</ul>
+<h1 id="making-releases">Making Releases</h1>
+<p>Releases are published under a designated version number with a format of <code>X.Y.Z</code>. <code>X</code> is the major, <code>Y</code> is the minor, and <code>Z</code> is patch number. Ideally, there is no need for patch-level releases, but in practice, it is very common to publish additional &quot;bug fix&quot; releases for a given release of version number <code>X.Y</code>. In this case, <code>X.Y</code> establishes a separate line of releases that is detached from the main branch, i.e. <code>trunk</code>. The purpose of this distinction is to keep the new features arriving to <code>trunk</code> isolated from smaller bug fixes without publishing them on each patch-level release.</p>
+<p>Branching and isolating releases from the <code>trunk</code> is also important from the view of maintaining a consistent software API (Application Programming Interface) and ABI (Application Binary Interface). A new major release should be created when there are non-compatible changes introduced in the API or ABI of the software, so users of the actual releases will not be affected by upgrading their software by following the same line of releases, only if they decide to switch (migrate) to the new major version. Minor releases should not break any API or ABI, they may only apply incremental changes to the existing ones, i.e. they shall remain backwards compatible. Bugfix releases should not change anything related to the API or ABI, not even the semantics of the user-visible functions.</p>
+<p>Before creating a branch for each major release (i.e. establishing a new release line) it is strongly recommended to stabilize the sources under <code>trunk</code> by ''freezing'' it. Code freeze or feature freeze usually means that only changes required for fixing bugs are allowed but no further features should be introduced. The freeze period should start a few weeks before the planned release (depending on the stability of <code>trunk</code>) and the freeze period should end when the new major release branch has been finally created.</p>
+<div class="figure">
+<img src="http://gsd.web.elte.hu/lectures/tools/svn/releases.png" alt="Creating releases from the trunk." /><p class="caption">Creating releases from the <code>trunk</code>.</p>
+</div>
+<p>A new release line is represented by a branch (from <code>trunk</code>) in the repository with the name <code>X.Y</code> under the directory <code>release</code>. It must be created on each <code>X.Y</code> version, and that will serve as a basis for that release and its potential patches. This is the place where the commits should happen when fixing (&quot;supporting&quot;) a previously published version of the software.</p>
+<p>For example:</p>
+<pre><code>$ svn copy $SVNBASE/trunk $SVNBASE/release/X.Y --message &quot;Branch release X.Y&quot;
+...
+</code></pre>
+<p>The initial version of the branch should be always tagged with patch level <code>.0</code>. It should not be present in the real version number of the package, it is only for technical reasons.</p>
+<pre><code>$ svn copy $SVNBASE/release/X.Y $SVNBASE/release/X.Y.0 --message &quot;Initial version of X.Y&quot;
+</code></pre>
+<p>It may happen that there is no patch release needed indeed; then the development of the branch stops here.</p>
+<p>Bug fixes themselves should always go to <code>trunk</code> (if possible), but they can be merged from there to <code>release/X.Y</code> by (cherry-)picking the revision of the given fix. Let us suppose that a bug was fixed in revision 123456 (<code>r123456</code>) in <code>trunk</code> that should be included in the next patch-level release of version <code>X.Y</code>. All we need to do is just to merge the given revision from <code>trunk</code>. Sometimes it may happen that <code>trunk</code> and the maintained stable branch are diverged from each other way too much -- in this case, some additional adaptation may be required (that is called &quot;backporting the change&quot;).</p>
+<p>In summary it could be said the purpose of the <code>release/X.Y</code> branch is to collect fixes only that derived from the main line of development.</p>
+<pre><code>$ svn checkout $SVNBASE/release/X.Y $BASE/release-X.Y
+...
+$ cd $BASE/release-X.Y
+$ svn merge -r 123456 $SVNBASE/trunk
+...
+$ svn commit --message &quot;Merge r123456 from trunk&quot;
+...
+</code></pre>
+<p>After a release is done (and fixes are prepared to be released), publish it, and tag it in the repository.</p>
+<pre><code>$ svn copy $SVNBASE/release/X.Y $SVNBASE/release/X.Y.Z --message &quot;Version X.Y.Z is released.&quot;
+</code></pre>
+<p>This way various releases can be collected under the <code>release</code> directory, so they can be accessed later on.</p>
+<pre><code>$ svn list $SVNBASE/release
+0.1/
+0.2/
+0.2.1/
+0.2.2/
+0.3/
+0.3.1/
+...
+</code></pre>
+<h1 id="use-cases-and-scenarios">Use Cases and Scenarios</h1>
+<p>In this section, we give recipes on how to implement different tasks in the everyday use by following the guidelines above. This is intended for providing examples, use cases, and scenarios on how to use the proposed system in general.</p>
+<p>Recipes are actually brief algorithms with no or with only minimal comments, we chose this way of presentation to make things extremely clear. In some cases, users may need to adapt their actions to the given situation (according to the design), but hopefully this will not happen too often. The different use cases are presented as questions with answers, so one can find one's way by picking the question that one thinks the closest to one's intentions.</p>
+<h2 id="so-what-to-do-when...">So, what to do when...</h2>
+<h3 id="doing-a-development">...doing a development?</h3>
+<p>Create a branch of <code>trunk</code> and start to work with it.</p>
+<pre><code>$ svn copy --message &quot;Create a project for feature_named_foo&quot; $SVNBASE/trunk $SVNBASE/branch/feature_named_foo
+</code></pre>
+<p>Start or join the actual development.</p>
+<pre><code>$ svn checkout $SVNBASE/projects/development/feature_named_foo $BASE/feature_named_foo
+$ cd $BASE/feature_named_foo
+&lt;do some development&gt;
+...
+&lt;test your changes&gt;
+$ svn commit --message &quot;Towards completing feature foo&quot;
+...
+</code></pre>
+<p>Repeat until the feature is completed. Do not forget to integrate on a regular basis.</p>
+<pre><code>$ cd $BASE/feature_named_foo
+$ svn merge $SVNBASE/trunk
+&lt;do the merge, resolve conflicts&gt;
+...
+&lt;test your changes&gt;
+$ svn commit --message &quot;Integrate from trunk&quot;
+...
+</code></pre>
+<h3 id="adding-a-completed-feature-to-the-software">...adding a completed feature to the software?</h3>
+<p>Merge your branch in <code>branches</code> back to <code>trunk</code>. If there are private branches for the given branch merge and close them before merging the parent.</p>
+<pre><code>$ svn checkout $SVNBASE/trunk $BASE/trunk
+...
+$ svn checkout $SVNBASE/branches/feature_named_foo $BASE/feature_named_foo
+...
+$ cd $BASE/feature_named_foo
+$ svn merge ../trunk
+&lt;do the integration, resolve conflicts&gt;
+...
+&lt;test your changes&gt;
+$ svn commit --message &quot;Final integration from trunk&quot;
+$ cd ..
+$ svn merge trunk@HEAD feature_named_foo@HEAD trunk
+&lt;do the merge, resolve conflicts&gt;
+...
+$ cd trunk
+&lt;test your changes&gt;
+$ svn commit --message &quot;Merge feature feature_named_foo: a short summary of the feature&quot; $BASE/trunk
+...
+</code></pre>
+<p>When you decide to finish up the development of the given feature completely, it is recommended to delete it from the repository. Obviously it will be not removed from the repository itself but it goes hidden henceforth in order to decrease the noise within the <code>branches</code> directory.</p>
+<pre><code>$ svn delete $BASE/feature_named_foo
+...
+$ svn commit --message &quot;Completed the development of feature_named_foo&quot;
+...
+</code></pre>
+<h3 id="fixing-a-bug">...fixing a bug?</h3>
+<p>Check out or update the <code>trunk</code> branch, do the changes, test them, and commit. If there is a ticket involved, add it to the commit message, then close the ticket with a reference to the changeset. Note that it is also recommended to create a separate branch for fixing complex bugs.</p>
+<pre><code>$ svn checkout $SVNBASE/trunk $BASE/trunk
+...
+$ cd $BASE/trunk
+&lt;fixing bug&gt;
+&lt;test your changes&gt;
+$ svn commit --message &quot;Fix a bug of #1738&quot;
+...
+</code></pre>
+<h3 id="publishing-a-normal-release">..publishing a normal release?</h3>
+<p>All code present in <code>trunk</code> should be built on each <code>X.Y</code> (normal) release.</p>
+<pre><code>$ svn checkout $SVNBASE/trunk $BASE/trunk
+...
+$ cd $BASE/trunk
+&lt;prepare, package the release&gt;
+...
+&lt;do some tests, sanity checks, etc.&gt;
+</code></pre>
+<p>If it is a new year, do not forget to bump the copyright years in the license files, and commit the changes (if there is any).</p>
+<p>Branch a new release line for <code>X.Y</code>, the first release of the line will be the tag <code>.0</code> (implicitly).</p>
+<pre><code>$ svn copy $SVNBASE/trunk $SVNBASE/release/X.Y --message &quot;Start release line X.Y.&quot;
+$ svn copy $SVNBASE/release/X.Y $SVNBASE/release/X.Y.0 --message &quot;Tag the first X.Y release.&quot;
+</code></pre>
+<p>Bump the version in the sources. Commit the change to <code>trunk</code>.</p>
+<pre><code>$ svn commit --message &quot;Bump version for trunk&quot;
+...
+</code></pre>
+<h3 id="publishing-a-patch-bug-fix-release">...publishing a patch (&quot;bug fix&quot;) release?</h3>
+<p>Patch releases can be published for any package, independently of the others.</p>
+<pre><code>$ svn checkout $SVNBASE/release/X.Y $BASE/release-X.Y
+...
+$ cd $BASE/release-X.Y
+&lt;prepare, package the release&gt;
+...
+&lt;do some tests, sanity checks, etc.&gt;
+...
+</code></pre>
+<p>If everything is correct, bump the patch-level version in the source. If it is a new year, do not forget to bump the copyright years in the license file. Commit the changes.</p>
+<pre><code>$ svn commit --message &quot;Prepare language X.Y.Z&quot;
+...
+</code></pre>
+<p>Publish the package.</p>
+<p>Finally, tag the released revision.</p>
+<pre><code>$ svn copy $SVNBASE/release/X.Y $SVNBASE/release/X.Y.Z-language --message &quot;Tag version X.Y.Z.&quot;
+</code></pre>
+<h3 id="wanting-to-use-a-given-version-of-the-software">...wanting to use a given version of the software?</h3>
+<p>Depending on which version you want to use, you may need to do one of the following.</p>
+<p>For official releases:</p>
+<pre><code>$ svn checkout $SVNBASE/release/0.1 $BASE/wundertool-0.1
+...
+$ cd $BASE/wundertool-0.1
+&lt;build, install, etc.&gt;
+...
+</code></pre>
+<p>This will check out and install release 0.1 from the central server.</p>
+<p>For the latest development version:</p>
+<pre><code>$ svn checkout $SVNBASE/trunk $BASE/wundertool-head
+...
+$ cd $BASE/wundertool-head
+&lt;build, install, etc.&gt;
+...
+</code></pre>
+<h1 id="conclusion">Conclusion</h1>
+<p>Well, that is all.</p>
+</body>
+</html>

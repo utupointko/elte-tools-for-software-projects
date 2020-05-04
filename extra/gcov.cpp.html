@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/work/zolix/tanfolyam/Nng/work/slides/gcov.cpp.html</title>
+<meta name="Generator" content="Vim/7.4">
+<meta name="plugin-version" content="vim7.4_v1">
+<meta name="syntax" content="cpp">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=">
+<meta name="colorscheme" content="none">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+* { font-size: 1em; }
+.Constant { color: #ff00ff; }
+.Statement { color: #a52a2a; font-weight: bold; }
+.Comment { color: #0000ff; }
+.Type { color: #2e8b57; font-weight: bold; }
+.PreProc { color: #800080; }
+-->
+</style>
+
+<script type='text/javascript'>
+<!--
+
+-->
+</script>
+</head>
+<body>
+<pre id='vimCodeElement'>
+
+TEST COVERAGE WITH GCOV
+=======================
+
+
+Is a test coverage program
+
+  - How often each line of code executes
+  - What lines of code are actually executed
+
+
+<span class="Comment">/*</span><span class="Comment"> lib.h </span><span class="Comment">*/</span>
+<span class="PreProc">#ifndef LIB_H</span>
+<span class="PreProc">#define LIB_H</span>
+
+<span class="Type">int</span> libfn1();
+<span class="Type">int</span> libfn2(<span class="Type">int</span> b);
+
+<span class="PreProc">#endif</span> <span class="Comment">/*</span><span class="Comment"> LIB_H </span><span class="Comment">*/</span>
+
+
+<span class="Comment">/*</span><span class="Comment"> lib.cpp </span><span class="Comment">*/</span>
+<span class="PreProc">#include </span><span class="Constant">&quot;lib.h&quot;</span>
+
+<span class="Type">int</span> libfn1()
+{
+    <span class="Type">int</span> a =<span class="Constant">5</span>;
+    a++;
+    <span class="Statement">return</span> (a);
+}
+
+<span class="Type">int</span> libfn2( <span class="Type">int</span> b)
+{
+    <span class="Statement">if</span> (b&gt;<span class="Constant">10</span>)
+    {
+        libfn1();
+        <span class="Statement">return</span>(b);
+    }
+    <span class="Statement">else</span>
+        <span class="Statement">return</span>(<span class="Constant">0</span>);
+}
+
+
+<span class="Comment">/*</span><span class="Comment"> test.cpp </span><span class="Comment">*/</span>
+<span class="PreProc">#include </span><span class="Constant">&quot;lib.h&quot;</span>
+
+<span class="Type">int</span> main ()
+{
+     libfn1();
+     libfn2(<span class="Constant">5</span>);
+}
+
+
+
+
+$ g++ --coverage test.cpp lib.cpp  -o test1
+
+  - generates .gcno files (flow graph) per source files
+  - instruments teh object code
+
+
+$ ls
+lib.cpp  lib.gcno  lib.h  test1  test.cpp  test.gcno
+
+
+$ ./test1
+$ ls
+lib.cpp  lib.gcda  lib.gcno  lib.h  test1  test.cpp  test.gcda  test.gcno
+
+
+Running the program generates .gcda files, containing the coverage info.
+
+
+
+Textual output
+--------------
+
+$ gcov -abcfu lib.c
+Function '_Z6libfn2i'
+Lines executed:<span class="Constant">60.00</span>% of <span class="Constant">5</span>
+No branches
+No calls
+
+Function '_Z6libfn1v'
+Lines executed:<span class="Constant">100.00</span>% of <span class="Constant">4</span>
+No branches
+No calls
+
+File 'lib.cpp'
+Lines executed:<span class="Constant">77.78</span>% of <span class="Constant">9</span>
+Branches executed:<span class="Constant">100.00</span>% of <span class="Constant">2</span>
+Taken at least once:<span class="Constant">50.00</span>% of <span class="Constant">2</span>
+Calls executed:<span class="Constant">0.00</span>% of <span class="Constant">1</span>
+Creating 'lib.cpp.gcov'
+
+
+
+$ ls
+lib.cpp       lib.gcda  lib.h  test.cpp   test.gcno
+lib.cpp.gcov  lib.gcno  test1  test.gcda
+
+
+.gcov files generated
+
+$ cat lib.cpp.gcov
+        -:    <span class="Constant">0</span>:Source:lib.cpp
+        -:    <span class="Constant">0</span>:Graph:lib.gcno
+        -:    <span class="Constant">0</span>:Data:lib.gcda
+        -:    <span class="Constant">0</span>:Runs:<span class="Constant">1</span>
+        -:    <span class="Constant">0</span>:Programs:<span class="Constant">1</span>
+        -:    <span class="Constant">1</span>:#include <span class="Constant">&quot;lib.h&quot;</span>
+        -:    <span class="Constant">2</span>:
+function _Z6libfn1v called <span class="Constant">1</span> returned <span class="Constant">100</span>% blocks executed <span class="Constant">100</span>%
+        <span class="Constant">1</span>:    <span class="Constant">3</span>:<span class="Type">int</span> libfn1()
+        <span class="Constant">1</span>:    <span class="Constant">3</span>-block  <span class="Constant">0</span>
+        -:    <span class="Constant">4</span>:{
+        <span class="Constant">1</span>:    <span class="Constant">5</span>:    <span class="Type">int</span> a =<span class="Constant">5</span>;
+        <span class="Constant">1</span>:    <span class="Constant">6</span>:    a++;
+        <span class="Constant">1</span>:    <span class="Constant">7</span>:    <span class="Statement">return</span> (a);
+        <span class="Constant">1</span>:    <span class="Constant">7</span>-block  <span class="Constant">0</span>
+unconditional  <span class="Constant">0</span> taken <span class="Constant">1</span>
+        -:    <span class="Constant">8</span>:}
+        -:    <span class="Constant">9</span>:
+function _Z6libfn2i called <span class="Constant">1</span> returned <span class="Constant">100</span>% blocks executed <span class="Constant">60</span>%
+        <span class="Constant">1</span>:   <span class="Constant">10</span>:<span class="Type">int</span> libfn2( <span class="Type">int</span> b)
+        <span class="Constant">1</span>:   <span class="Constant">10</span>-block  <span class="Constant">0</span>
+        -:   <span class="Constant">11</span>:{
+        <span class="Constant">1</span>:   <span class="Constant">12</span>:    <span class="Statement">if</span> (b&gt;<span class="Constant">10</span>)
+        <span class="Constant">1</span>:   <span class="Constant">12</span>-block  <span class="Constant">0</span>
+branch  <span class="Constant">0</span> taken <span class="Constant">0</span> (fallthrough)
+branch  <span class="Constant">1</span> taken <span class="Constant">1</span>
+        -:   <span class="Constant">13</span>:    {
+    #####:   <span class="Constant">14</span>:        libfn1();
+    $$$$$:   <span class="Constant">14</span>-block  <span class="Constant">0</span>
+call    <span class="Constant">0</span> never executed
+    #####:   <span class="Constant">15</span>:        <span class="Statement">return</span>(b);
+unconditional  <span class="Constant">0</span> never executed
+        -:   <span class="Constant">16</span>:    }
+        -:   <span class="Constant">17</span>:    <span class="Statement">else</span>
+        <span class="Constant">1</span>:   <span class="Constant">18</span>:        <span class="Statement">return</span>(<span class="Constant">0</span>);
+        <span class="Constant">1</span>:   <span class="Constant">18</span>-block  <span class="Constant">0</span>
+unconditional  <span class="Constant">0</span> taken <span class="Constant">1</span>
+        -:   <span class="Constant">19</span>:}
+        -:   <span class="Constant">20</span>:
+        -:   <span class="Constant">21</span>:
+
+
+
+HTML output
+-----------
+
+
+
+$ lcov --directory . --capture --output-file app.info
+Capturing coverage data from .
+Found gcov version: <span class="Constant">4.9.3</span>
+Scanning . <span class="Statement">for</span> .gcda files ...
+Found <span class="Constant">2</span> data files in .
+Processing test.gcda
+<span class="Statement">geninfo</span>: WARNING: cannot find an entry <span class="Statement">for</span> lib.cpp.gcov in .gcno file, skipping file!
+Processing lib.gcda
+Finished .info-file creation
+
+$ genhtml app.info
+Reading data file app.info
+Found <span class="Constant">2</span> entries.
+Found common filename prefix <span class="Constant">&quot;/home/gsd/work/zolix/tanf/NNG/gmock/mytests/9&quot;</span>
+Writing .css <span class="Statement">and</span> .png files.
+Generating output.
+Processing file h/lib.cpp
+Processing file h/test.cpp
+Writing directory view page.
+Overall coverage rate:
+  lines......: <span class="Constant">84.6</span>% (<span class="Constant">11</span> of <span class="Constant">13</span> lines)
+  functions..: <span class="Constant">100.0</span>% (<span class="Constant">3</span> of <span class="Constant">3</span> functions)
+
+
+
+
+Problems with gcov
+------------------
+
+
+
+<span class="Constant">1.</span> Gcov is thread-safe, e.g. works correctly with multi-threaded applications.
+   But uses lock <span class="Statement">and</span> storing counters <span class="Statement">for</span> visited lines in close-proximity,
+   therefore execution of multithreaded applications is _very_ slow.
+
+
+<span class="Constant">2.</span> Statement level coverage can <span class="Statement">not</span> extract expressions. When there is a
+   shortcut <span class="Statement">operator</span>, we <span class="Statement">do</span> <span class="Statement">not</span> know whether the right hand side evaluated.
+
+
+
+An expression-level instrumentation <span class="Statement">and</span> coverage tool
+-----------------------------------------------------
+
+MooCov by Gabor Kozar:
+
+<span class="Statement">https</span>:<span class="Comment">//github.com/shdnx/MooCoverage</span>
+
+
+
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

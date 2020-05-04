@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+<title>~\Documents\work\uni\proj\regex_samples.txt.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v6">
+<meta name="syntax" content="sh">
+<meta name="settings" content="use_css">
+<style type="text/css">
+<!--
+pre { font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.Identifier { color: #008080; }
+.Constant { color: #ff00ff; }
+.Statement { color: #804040; font-weight: bold; }
+-->
+</style>
+</head>
+<body>
+<pre>
+
+$ grep hello
+
+$ grep hello world
+grep: world: No such file or directory
+
+$ grep <span class="Statement">'</span><span class="Constant">hello world</span><span class="Statement">'</span>
+
+$ grep .
+
+$ grep <span class="Statement">[</span><span class="Constant">0123456789</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Constant">0-9</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Constant">5-9</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Constant">9-5</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Constant">9-9</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span>.<span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span>aeiou<span class="Statement">]</span>
+
+$ grep h<span class="Statement">[</span>ae<span class="Statement">]</span>llo
+
+$ grep h<span class="Statement">[</span>^ae<span class="Statement">]</span>llo
+
+$ grep h<span class="Statement">[</span><span class="Constant">0</span>-9a<span class="Statement">-z</span><span class="Statement">]</span>llo
+
+$ grep h<span class="Statement">[</span>^<span class="Constant">0</span>-9a<span class="Statement">-z</span><span class="Statement">]</span>llo
+
+$ grep <span class="Statement">[</span>:punct:<span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Identifier">[:alpha:]</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Identifier">[:upper:]</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Identifier">[:punct:]</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">[</span><span class="Identifier">[:space:]</span><span class="Statement">]</span>
+
+$ grep <span class="Statement">'</span><span class="Constant">\w</span><span class="Statement">'</span>
+
+
+</pre>
+</body>
+</html>
